@@ -1,0 +1,135 @@
+--Hazır veri tabanından:
+Tc no unique key olur.Tablolar arasında ilişki varsa yani kim kime rapor veriyor gibi o zaman foreign key.
+--inner join sadece eşleşenler gelir.2 tablodaki ilişkili değerleri eşleştirerek birleştiririz tabloları. 
+--Ürünleri listeledik ve kategori id de getirmek istersek kullanırız.
+--Hangi müşterilerimiz bizden ürün aldı,olmayanı göstermez zaten.
+--Yani sadece id görmek istemeyiz,değerleri de görelim.
+--A kesişim B inner
+Select * from Products p inner join Categories c on p.CategoryID=c.CategoryID where UnitPrice>20 order by c.CategoryID
+ -- 3 Tabloyu join yapmak,kolonları ortak 2 tablo join edilmeli.
+ Select * from Products p inner join [Order Details] od
+ on p.ProductID=od.ProductID
+ inner join Orders o
+ on o.OrderID=od.OrderID
+ --Hangi üründen ne zaman satmış ve ne kadar kazanmışız ?
+ --Artık istediğimiz kolonları getirelim.
+ Select p.ProductName,o.OrderDate,od.Quantity*od.UnitPrice as Total
+ from Products p inner join [Order Details] od
+ on p.ProductID=od.ProductID
+ inner join Orders o
+ on o.OrderID=od.OrderID --birşey üzerinden biraraya getiririz.
+ order by p.ProductName,o.OrderDate	
+ --Çıkan sonuçları kopyalarak excel ortamında raporlayabilirsin.
+ --Left join:Eşleşmeyen dataları da getirmek için,müşterilerde var sipariş edenlerde yoksa ona göre kampanya yaparız.
+ --Satamadığımız ürün var mı?
+ Select * from Products p left join [Order Details] od
+ on p.ProductID=od.ProductID
+ where od.ProductID is null
+ --Hiç satış yapamadığımız müşterileri görmek istiyoruz.
+ --Ne hangi tabloda geçiyor?
+ --inner da birleştirmede sıranın önemi yok. inner da null olanlar gelmez.
+ --inner joinde herşeyi null olan alan göremeyiz.left yani soldaki tabloda olup sağda olan ve olmayanı getir diyor.
+ --A-B
+ Select * from Customers c left join Orders o
+ on c.CustomerID=o.CustomerID
+ where o.CustomerID is null
+ --İstersen yıldız yerine istediğini getir.
+--Right join:Tam tersi,B-A
+--Siparişte olup müşteride olmayan olmaz
+Select * from Orders o right join Customers c
+on o.CustomerID=c.CustomerID
+where o.CustomerID is null
+--where yazmazsan left ve right inner joini kaplar.
+--full join tüm kümenin birleşimi oluyor.İlişkisi az olan tablolar için,fazla kullanılmaz bu yöntem.Where e gerek yok.
+Select * from Customers c full join Orders o 
+on c.CustomerID=o.CustomerID
+
+
+--Workshops
+
+--Satış yapamayan elemanlar:
+Select * from Employees e left join Orders o 
+on e.EmployeeID=o.EmployeeID
+--nerde null gelir?
+where o.EmployeeID is null
+
+--Hangi üründen kaç tane satmışız?
+Select p.ProductName,Count(*) as Adet from Products as p inner join [Order Details] as o
+on p.ProductID =o.ProductID
+group by p.ProductName
+order by p.ProductName
+
+--Kampanyalı ürünlerden kaç tane satmışız?
+Select p.ProductName,Count(*) as Adet from Products as p inner join [Order Details] as o
+on p.ProductID =o.ProductID
+where o.Discount>0
+group by p.ProductName
+order by p.ProductName
+
+--Hangi kategoriden kaç tane satmışız?Buna göre nereye yoğunlaşmalı şirket?
+--Tablolar doğrudan ilişkili değil,o zaman aracı tabloya yani Products tablosuna ihtiyacımız var
+Select c.CategoryName,Count(*) as Adet from Products as p inner join Categories as c
+on p.ProductID=c.CategoryID
+inner join [Order Details] as od
+on p.ProductID=od.ProductID
+group by CategoryName
+order by Adet desc
+
+
+--Kim Kimin patronu ?
+--Tek tablo,birbiriyle ilişkili sütunlar(self join)
+--Aynı tabloyu kendisiyle join edeceğiz.
+--Patron null inner join de gelmez.
+Select e2.FirstName+' '+e2.LastName as Personel,e1.FirstName+' '+e1.LastName as Üstü
+from Employees e1 right join Employees e2
+on e1.EmployeeID=e2.ReportsTo
+
+
+--insert,update,delete
+insert into Categories (CategoryName,Description) values ('Test Category','Test Category Description') --Tabi picture kısnı null olabilir.
+insert into [Order Details] values (10248,12,12,10,0) --Hiçbirşey vermezsen hepsini doldurmalısın.
+--Update
+update Categories set CategoryName='Test 3',Description='Test 3 description'
+where CategoryID>=9
+--Dikkat!!
+--Güncelleme yaparken şu verilerin hepsini değiştirebilirsin.Buna çok dikkat et.
+update Territories set TerritoryDescription='Ankara '
+--Delete
+--Yine şu işleme çok dikkat et:
+delete from Categories
+--Burda ilişkiler var tablolarla o yüzden hata veriyor.Ama tablon başka tablolarla ilişkisiz olursa siler verileri.
+delete from Categories where CategoryID=9
+
+--Join odaklı insert update delete
+Select * from CustomersWork
+--Başka tablodan başka tabloya veri atma
+insert into CustomersWork (CustomerId,CompanyName,ContactName)
+select CustomerId,CompanyName,ContactName from Customers
+delete from CustomersWork --ilişkisiz hepsi gider.
+
+insert into CustomersWork (CustomerId,CompanyName,ContactName)
+select CustomerId,CompanyName,ContactName from Customers
+where ContactName like '%n%'
+--Korumalı tabloda yapılan değişikliği gerçeğine yapmak,güncellemek
+update Customers set CompanyName=Customerswork.CompanyName
+from Customers inner join CustomersWork
+on Customers.CustomerID=CustomersWork.CustomerId
+where CustomersWork.CompanyName like '%TEST%'
+
+select* from Customers
+--join ile delete yapmak,yalnız ilişkisel olduğu için foreign key error olacak.Önce geçen yerlerde silersin.
+delete Customers from  
+Customers inner join CustomersWork
+on Customers.CustomerID=CustomersWork.CustomerId
+where CustomersWork.CompanyName like '%TEST%'
+
+--Union join alt alta getirir.Kolon sayıları eşit olmalı.Farklılıkları ekler.Veri tipleri aynı olmalı.
+Select CustomerId,CompanyName,ContactName from Customers
+union 
+Select * from CustomersWork
+--Eğer aynı olanlar da alt alta gelsin istersen:
+Select CustomerId,CompanyName,ContactName from Customers
+union all
+Select * from CustomersWork
+--tekrar eden de gelir böylece
+

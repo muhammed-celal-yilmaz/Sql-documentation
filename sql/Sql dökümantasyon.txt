@@ -1,0 +1,141 @@
+Sql dökümantasyon,veritabanını da at.
+--Hangi personel nereye satmış foreign key başka yerde bir id.Birden çoğa.1 sipariş,çok ürün.
+--Aynı değerler basılmasın diye Unique Key.tc no
+--Sorgu Kısmı
+select * from Products
+select ProductName,ProductId from Products
+select ProductId as Id,ProductName as Name from Products
+select p.ProductName from Products p
+select p.ProductName,p.UnitPrice*p.UnitsInStock as Total from Products as p
+select p.ProductName+'->'+p.QuantityPerUnit as Total from Products as p
+select 'Celal Yılmaz' as Engineer
+select 7*8 as Result
+
+-- Where
+select * from Products
+where CategoryID=1
+
+select * from Products where UnitsInStock<=50
+select * from Products where UnitsInStock=UnitPrice*UnitsOnOrder
+select * from Products where UnitsInStock=5+1
+select * from Products where UnitsInStock=0 and UnitsOnOrder>0
+select p.ProductName from Products p where UnitsInStock=0 and UnitsOnOrder>0
+
+-- or,not,and
+select * from Products where UnitsInStock=0 or UnitsOnOrder>0
+select * from Products where not ProductName='Chai' and UnitsInStock=0
+
+--order by
+select * from Products order by ProductName
+--Fiyat filtreleme
+select * from Products order by UnitPrice -- Küçükten büyüğe default asc
+select * from Products order by UnitPrice desc -- Tam tersi
+-- asc=ascending=artan
+-- desc=descending=azalan
+select * from Products order by ProductName,UnitPrice -- İlk önce isme sonra aynıysa fiyata göre sıralama
+select * from Products order by ProductName desc,UnitPrice asc
+
+-- Like
+select * from Products where ProductName like '%ch' --ch ile biten 
+select * from Products where ProductName like 'ch%' -- ch ile başlayan gerisi önemli değil
+select * from Products where ProductName like '%ch%' -- içinde ch geçsin
+
+--in,between
+select * from Products where UnitPrice between 10 and 50 order by UnitPrice
+--Fiyatı 10 ila 50 arasında olanlar ve fiyata göre sırala.
+select * from Products where CategoryID in (1,2) -- metinsel olsa ('') kullanırdın.Metinsel id.
+--categoryıd 1 veya 2 olanlar
+
+--aggreegation functions ,kümülatif fonksiyonlar
+--Numerical functions
+select Count(*) as [Ürün Sayısı] from Products
+--[] Ayrık ifadeleri bu parantezle kullan.Ve tr karakter yazmamaya çalış.
+--* tüm satırı verdi.
+select Count(ProductName) from Products
+--Yine aynısını verir.Ama sütun boşsa yani NULL ise onları saymaz.Dikkat.
+select Count(*) from Customers --91 kayıt
+select Count(Region) from Customers -- 31 kayıt,tek satır
+--Şirkette ortalama ürün,max ve min ürün.
+select Min(UnitPrice) from Products
+select Max(UnitPrice) from Products
+select Avg(UnitPrice) from Products
+--Her satırda çarp kümülatif topla.
+select Sum(UnitPrice*Quantity) as Kazanç from [Order Details] --Another table
+--Rastgele sayı
+select Rand()
+
+--String Functions
+Select Left('Celal',3) --Soldan 3
+select Left(ProductName,3) from Products
+
+Select Right('Celal',3)
+select Right(ProductName,3) from Products
+
+Select Len('Celal') as Uzunluk
+Select ProductName,Len(ProductName) as Uzunluk from Products
+
+Select Lower('CeLaL') as Result
+Select Upper('CeLaL') as Result
+
+Select Trim('  Celal   ')
+select * from Products where ProductName='Chai' --Sıkıntı yok ama verinin baş veya sonunda boşluk varsa getirmez.Boşlukları at.
+select * from Products where TRIM(ProductName)='Chai' 
+select TRIM(ProductName) from Products where TRIM(ProductName)='Chai' --Kolonda da atar boşluğu
+Select * from Products where LEN(ProductName)>10
+Select Ltrim('  Celal   ') -- Soldaki boşluğu atar.
+Select Rtrim('  Celal   ')
+Select Reverse('Celal') as result --ters çevir
+
+--Var mı yokmu şarta bindir
+Select CHARINDEX('l','Celal',1)-- ne nerde geçer,kaçtan başlim aramaya
+Select * from products where CHARINDEX('anton',ProductName,1)>0 --Büyük küçük duyarlı değil sql ve bu sonuç döndürür yani bunu bi koşula bağla.
+--Bulunan gelir yani.Sayı döner.
+--Türkçe karakterleri inge çevirmek için replace olabilir.
+--Ne arıycan ne ile değiştircen
+--Boşluk varsa uygular.Diğerleri de gelir.
+Select Replace('Celal Yilmaz',' ','_')
+Select Replace(ProductName,' ','-') from Products
+--2'den itibaren 3 tane parçala.
+Select SUBSTRING('Celal Yilmaz',2,3)
+--Karakterin sayısal karşılığı,binary.Harf kısıtı için kullanılabilir.
+Select ASCII('A')
+--Tam tersi
+Select CHAR(80)
+
+
+--Distinct,group by,having
+--Distinct : Veriler tekrarlanmaz
+Select distinct(Country) from Customers order by Country
+Select distinct(Country),ContactName from Customers order by Country -- Doğru bir kullanım değil.İkisi birlikte 1 kere tekrar edebilir.
+Select distinct Country,City from Customers order by Country
+
+--Her country için tablo yapıp ona göre fonksiyon çalıştırırız.
+--En çok müşterim hangi ülkede var ?
+Select Country,Count(*) Adet from Customers group by Country
+--Normalde böyle bir kullanım olamaz.Count bir sayı döner ama gruplama olmuyor.Örnek:
+--Select Country,Count(*) Adet from Customers
+--Ülke ve şehirden kaç tane var:
+Select Country,City,Count(*) Adet from Customers group by Country,City
+--group by her grup için bir liste oluşturur.Ve o her bir listeye ayrı ayrı şart koyma yöntemi having dir.Böylece istediğimiz sorgular gelir.
+Select Country,City,Count(*) Adet from Customers group by Country,City having Count(*)>1
+Select Country,City,Count(*) Adet from Customers group by Country,City having Count(*)>1 order by Country
+--Not: having kümülatif şartlar için where olayı farklı.
+--having kümülatif şart;where ise veri filtreleme
+--Bu sorguda count olmadı tabi
+--Aşağıdaki sorgular bütündür.
+Select Country,City Adet from Customers 
+where City <>'Nantes' -- <> işareti farklı olan demektir.
+--where ile sadece verimizi filtreledik.
+group by Country,City having Count(*)>1 order by Country
+--Şehri nan dan farklı olana uygula dedik group by ile.
+
+
+
+
+
+
+
+
+
+
+
